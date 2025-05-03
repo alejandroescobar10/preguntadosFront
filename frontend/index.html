@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Juego Preguntados</title>
+
+  <!-- Tailwind CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- React & ReactDOM CDN -->
+  <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+
+  <!-- Babel para JSX -->
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+</head>
+<body class="bg-gray-100 min-h-screen flex items-center justify-center">
+  <div id="root" class="w-full max-w-2xl p-4"></div>
+
+  <script type="text/babel">
+    const { useState } = React;
+
+    const temas = ['moda', 'historia', 'ciencia', 'deporte', 'arte'];
+
+    function Home({ setEtapa, setTema, setPreguntas }) {
+      const elegirTema = async (tema) => {
+        const res = await fetch(`http://localhost:5000/api/preguntas/${tema}`);
+        const data = await res.json();
+        setTema(tema);
+        setPreguntas(data.preguntas);
+        setEtapa("quiz");
+      };
+
+      return (
+        <div className="text-center">
+          <h1 className="text-3xl font-bold mb-6">Elige una categoría</h1>
+          <div className="grid grid-cols-2 gap-4">
+            {temas.map((tema) => (
+              <button
+                key={tema}
+                onClick={() => elegirTema(tema)}
+                className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+              >
+                {tema.toUpperCase()}
+              </button>
+            ))}
+          </div>
+        </div>
+      );
+    }
+
+    function Quiz({ preguntas, setEtapa, setPuntaje, tema }) {
+      const [respuestas, setRespuestas] = useState({});
+      const [index, setIndex] = useState(0);
+      const actual = preguntas[index];
+
+      const seleccionar = (opcion) => {
+        setRespuestas({ ...respuestas, [index]: opcion });
+        if (index + 1 < preguntas.length) {
+          setIndex(index + 1);
+        } else {
+          terminar();
+        }
+      };
+
+      const terminar = async () => {
+        let puntaje = 0;
+        const detalles = preguntas.map((p, i) => {
+          const r = respuestas[i];
+          const correcta = p.respuesta_correcta;
+          if (r === correcta) puntaje++;
+          return {
+            pregunta: p.pregunta,
+            respuesta_usuario: r,
+            respuesta_correcta: correcta
+          };
+        });
+
+        setPuntaje(puntaje);
+        await fetch("http://localhost:5000/api/guardar", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            tema,
+            preguntas: detalles,
+            puntaje
+          })
+        });
+
+        setEtapa("result");
+      };
+
+      return (
+        <div className="bg-white p-6 rounded shadow">
+          <h2 className="text-xl font-bold mb-2">Pregunta {index + 1}</h2>
+          <p className="mb-4">{actual.pregunta}</p>
+          <div className="space-y-2">
+            {Object.entries(actual.opciones).map(([letra, texto]) => (
+              <button
+                key={letra}
+                onClick={() => seleccionar(letra)}
+                className="w-full text-left bg-gray-200 hover:bg-gray-300 py-2 px-4 rounded"
+              >
+                <strong>{letra}.</strong> {texto}
+              </button>
+            ))}
+          </div>
+        </div>
+      );
+    }
+
+    function Resultado({ puntaje, preguntas, tema }) {
+      return (
+        <div className="text-center">
+          <h2 className="text-2xl font-bold mb-4">¡Juego terminado!</h2>
+          <p className="mb-2">Tema: <strong>{tema.toUpperCase()}</strong></p>
+          <p className="mb-4">Tu puntaje es <strong>{puntaje} / {preguntas.length}</strong></p>
+          <button
+            onClick={() => window.location.reload()}
+            className="bg-green-500 text-white py-2 px-4 rounded"
+          >
+            Jugar de nuevo
+          </button>
+        </div>
+      );
+    }
+
+    function App() {
+      const [etapa, setEtapa] = useState("home");
+      const [tema, setTema] = useState("");
+      const [preguntas, setPreguntas] = useState([]);
+      const [puntaje, setPuntaje] = useState(0);
+
+      return (
+        <>
+          {etapa === "home" && (
+            <Home setEtapa={setEtapa} setTema={setTema} setPreguntas={setPreguntas} />
+          )}
+          {etapa === "quiz" && (
+            <Quiz preguntas={preguntas} setEtapa={setEtapa} setPuntaje={setPuntaje} tema={tema} />
+          )}
+          {etapa === "result" && (
+            <Resultado puntaje={puntaje} preguntas={preguntas} tema={tema} />
+          )}
+        </>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+  </script>
+</body>
+</html>
