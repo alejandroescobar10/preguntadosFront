@@ -2,7 +2,7 @@ const temas = ['moda', 'historia', 'ciencia', 'deporte', 'arte'];
 
 const Home = ({ setStage, setTema, setPreguntas }) => {
   const elegirTema = async (tema) => {
-    const res = await fetch(`http://localhost:5000/api/preguntas/${tema}`);
+    const res = await fetch(`https://preguntados-back-eta.vercel.app/api/preguntas/${tema}`);
     const data = await res.json();
     setTema(tema);
     setPreguntas(data.preguntas);
