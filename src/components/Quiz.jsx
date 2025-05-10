@@ -29,7 +29,7 @@ const Quiz = ({ preguntas, setStage, setPuntaje, tema }) => {
     });
 
     setPuntaje(puntaje);
-    await fetch("https://preguntados-back-eta.vercel.app/api/guardar", {
+    await fetch("https://preguntados-back-theta.vercel.app/api/guardar", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ tema, preguntas: detalles, puntaje }),
